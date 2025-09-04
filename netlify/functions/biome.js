@@ -1,6 +1,8 @@
-// Netlify Function (Node 18 runtime) — proxy vers InfinityFree
+// Netlify Function (Node 18) — proxy vers InfinityFree
 export async function handler(event, context) {
-  const API = 'https://biomeunivers.infinityfree.me/public/biome.php';
+  const API_BASE = 'https://biomeunivers.infinityfree.me/public/biome.php';
+  const qs = event.rawQuery ? `?${event.rawQuery}` : '';
+  const url = API_BASE + qs;
 
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -15,6 +17,7 @@ export async function handler(event, context) {
     };
   }
 
+  // on transfère seulement les entêtes utiles
   const headers = {};
   for (const k of ['content-type', 'x-u', 'x-x', 'x-g']) {
     const v = event.headers[k];
@@ -27,8 +30,8 @@ export async function handler(event, context) {
     body: event.httpMethod === 'GET' ? undefined : event.body
   };
 
-  const resp = await fetch(API, init);
-  const text = await resp.text();
+  const resp = await fetch(url, init);
+  const text = await resp.text(); // on passe tel quel (JSON ou message d’erreur PHP)
 
   return {
     statusCode: resp.status,
