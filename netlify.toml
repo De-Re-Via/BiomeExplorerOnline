@@ -1,7 +1,9 @@
-[functions]
-  directory = "netlify/functions"
+[build]
+  publish = "."
+  functions = "netlify/functions"
 
 [[redirects]]
   from = "/api/biome"
-  to = "/.netlify/functions/biome"
+  to   = "/.netlify/functions/biome"
   status = 200
+  force  = true
