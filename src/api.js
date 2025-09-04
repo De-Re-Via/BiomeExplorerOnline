@@ -1,18 +1,17 @@
-// src/api.js — client API pour Biome Explorer
-// En prod (Netlify), toutes les requêtes passent par le proxy /api/biome
-// Le proxy appelle ensuite ton biome.php sur InfinityFree (donc pas de CORS côté navigateur)
+// src/api.js — client API pour Biome Explorer (via Netlify Functions proxy)
 
-function qp(name) {
+/** Lit un paramètre de l'URL (uid / exp / sig) injecté par l'iframe du site */
+function qp(n) {
   const u = new URL(window.location.href);
-  return u.searchParams.get(name) || '';
+  return u.searchParams.get(n) || '';
 }
 
-// URL du proxy
+/** URL du proxy same-origin (pas de CORS côté navigateur) */
 function buildApiUrl() {
-  return '/api/biome'; // même origine que le jeu hébergé sur Netlify
+  return '/api/biome';
 }
 
-// On continue à envoyer uid/exp/sig (issus de l’iframe) dans les headers
+/** On envoie uid/exp/sig en headers au proxy */
 function authHeaders() {
   return {
     'X-U': qp('uid') || '',
@@ -21,48 +20,40 @@ function authHeaders() {
   };
 }
 
-async function safeJson(res) {
+/** Ne lit le corps QU'UNE FOIS, puis parse JSON ou lève une erreur parlante */
+async function readAsJsonOrThrow(res, context) {
+  const text = await res.text(); // lecture unique
+  if (!res.ok) {
+    throw new Error(`${context} HTTP ${res.status}: ${text.slice(0, 200)}…`);
+  }
   try {
-    return await res.json();
+    return JSON.parse(text);
   } catch {
-    const t = await res.text();
-    throw new Error(`non-JSON (${res.status}): ${t.slice(0,160)}…`);
+    throw new Error(`${context} non-JSON (${res.status}): ${text.slice(0, 200)}…`);
   }
 }
 
 export async function loadState() {
-  const res = await fetch(buildApiUrl(), {
+  const r = await fetch(buildApiUrl(), {
     method: 'GET',
     headers: authHeaders(),
     cache: 'no-store',
     credentials: 'omit'
   });
-
-  if (!res.ok) {
-    const t = await res.text().catch(() => '');
-    throw new Error(`load HTTP ${res.status}: ${t.slice(0,160)}…`);
-  }
-
-  const j = await safeJson(res);
+  const j = await readAsJsonOrThrow(r, 'load');
   if (!j.ok) throw new Error(j.error || 'load-failed');
   return j.state ?? null;
 }
 
 export async function saveState(state) {
-  const res = await fetch(buildApiUrl(), {
+  const r = await fetch(buildApiUrl(), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(state ?? {}),
     keepalive: true,
     credentials: 'omit'
   });
-
-  if (!res.ok) {
-    const t = await res.text().catch(() => '');
-    throw new Error(`save HTTP ${res.status}: ${t.slice(0,160)}…`);
-  }
-
-  const j = await safeJson(res);
+  const j = await readAsJsonOrThrow(r, 'save');
   if (!j.ok) throw new Error(j.error || 'save-failed');
   return true;
 }
