@@ -1,9 +1,10 @@
-// Netlify Function (Node 18) — proxy vers InfinityFree
-export async function handler(event, context) {
+// Netlify Function (Node 18) — proxy vers InfinityFree avec en-têtes "browser-like"
+export async function handler(event) {
   const API_BASE = 'https://biomeunivers.infinityfree.me/public/biome.php';
-  const qs = event.rawQuery ? `?${event.rawQuery}` : '';
+  const qs  = event.rawQuery ? `?${event.rawQuery}` : '';
   const url = API_BASE + qs;
 
+  // Préflight CORS
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 204,
@@ -17,25 +18,39 @@ export async function handler(event, context) {
     };
   }
 
-  // on transfère seulement les entêtes utiles
-  const headers = {};
+  // En-têtes "browser-like" pour éviter la page anti-bot d'InfinityFree
+  const browserish = {
+    'User-Agent':
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
+      '(KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+    'Accept': 'application/json, text/plain, */*',
+    'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
+    'Origin':  'https://biomeunivers.infinityfree.me',
+    'Referer': 'https://biomeunivers.infinityfree.me/public/',
+    'Connection': 'keep-alive'
+  };
+
+  // On transfère certains en-têtes utiles depuis le jeu → proxy → PHP
+  const pass = {};
   for (const k of ['content-type', 'x-u', 'x-x', 'x-g']) {
     const v = event.headers[k];
-    if (v) headers[k] = v;
+    if (v) pass[k] = v;
   }
 
   const init = {
     method: event.httpMethod,
-    headers,
+    headers: { ...browserish, ...pass },
     body: event.httpMethod === 'GET' ? undefined : event.body
   };
 
   const resp = await fetch(url, init);
-  const text = await resp.text(); // on passe tel quel (JSON ou message d’erreur PHP)
+  const text = await resp.text();
 
   return {
     statusCode: resp.status,
-    headers: { 'content-type': resp.headers.get('content-type') || 'application/json; charset=utf-8' },
+    headers: {
+      'content-type': resp.headers.get('content-type') || 'application/json; charset=utf-8'
+    },
     body: text
   };
 }
