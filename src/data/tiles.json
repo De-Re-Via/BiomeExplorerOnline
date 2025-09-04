@@ -1,0 +1,75 @@
+{
+  "tiles": [
+    {
+      "id": "forest",
+      "name": "Forêt",
+      "sprite": "forest.png",
+      "axes": { "energy": 0, "biodiv": 3, "food": 1, "social": 0, "resilience": 2, "tech": 0 },
+      "desc": "Réservoir de vie; protège et régule."
+    },
+    {
+      "id": "lake",
+      "name": "Lac",
+      "sprite": "lake.png",
+      "axes": { "energy": 0, "biodiv": 2, "food": 1, "social": 0, "resilience": 2, "tech": 0 },
+      "desc": "Eau douce; amortit les chocs climatiques."
+    },
+    {
+      "id": "wetland",
+      "name": "Zone humide",
+      "sprite": "wetland.png",
+      "axes": { "energy": -1, "biodiv": 3, "food": 0, "social": 0, "resilience": 3, "tech": 0 },
+      "desc": "Éponge naturelle; très haute résilience."
+    },
+    {
+      "id": "grassland",
+      "name": "Prairie",
+      "sprite": "grassland.png",
+      "axes": { "energy": 0, "biodiv": 1, "food": 1, "social": 0, "resilience": 1, "tech": 0 },
+      "desc": "Sol vivant polyvalent."
+    },
+    {
+      "id": "farm",
+      "name": "Ferme",
+      "sprite": "farm.png",
+      "axes": { "energy": -1, "biodiv": 0, "food": 3, "social": 0, "resilience": 1, "tech": 0 },
+      "desc": "Produit des denrées locales."
+    },
+    {
+      "id": "city_center",
+      "name": "Centre-ville",
+      "sprite": "city_center.png",
+      "axes": { "energy": -2, "biodiv": -2, "food": -1, "social": 3, "resilience": -1, "tech": 1 },
+      "desc": "Vie sociale dense, sols imperméables."
+    },
+    {
+      "id": "suburb",
+      "name": "Banlieue",
+      "sprite": "suburb.png",
+      "axes": { "energy": -1, "biodiv": -1, "food": 0, "social": 2, "resilience": -1, "tech": 0 },
+      "desc": "Logements, liens sociaux modérés."
+    },
+    {
+      "id": "industrial",
+      "name": "Industriel",
+      "sprite": "industrial.png",
+      "axes": { "energy": -3, "biodiv": -2, "food": 0, "social": -1, "resilience": -1, "tech": 2 },
+      "desc": "Production lourde, pollution et tech."
+    },
+    {
+      "id": "solar_farm",
+      "name": "Parc solaire",
+      "sprite": "solar_farm.png",
+      "axes": { "energy": 3, "biodiv": 0, "food": 0, "social": 0, "resilience": 1, "tech": 1 },
+      "desc": "Énergie propre, robuste au climat."
+    },
+    {
+      "id": "research_lab",
+      "name": "Lab de recherche",
+      "sprite": "research_lab.png",
+      "axes": { "energy": -1, "biodiv": 0, "food": 0, "social": 1, "resilience": 1, "tech": 3 },
+      "desc": "Innovations et solutions avancées."
+    }
+  ]
+}
+ 

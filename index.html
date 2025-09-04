@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BiomeExplorer — Prototype</title>
+
+  <style>
+    :root{
+      --bg:#0b1020; --bg-2:#0f1528; --bg-3:#121a30;
+      --ink:#e8f1ff; --muted:#9fb3d6;
+      --bar:#1d2744; --bar-fill:#4ec0ff;
+      --good:#35d499; --warn:#ffb24a; --bad:#ff6b6b;
+      --hud-h: 96px;          /* hauteur exacte du header */
+      --board-bottom: 72px;   /* hauteur de la bande sombre du bas (met 0 si tu n'en veux pas) */
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; margin:0; background:linear-gradient(180deg,#0b1020,#0c1222); color:var(--ink); font:15px/1.35 system-ui,Segoe UI,Roboto,Arial; }
+    html,body{ overflow:hidden; }
+
+    #layout{ display:grid; grid-template-columns:240px 1fr 340px; grid-template-rows:100vh; width:100%; height:100%; }
+
+    /* Palette */
+    #leftCol{ background:var(--bg-2); border-right:1px solid #0f1b33; padding:12px 10px; overflow:auto; }
+    #leftCol h2{ font-size:14px; color:var(--muted); font-weight:600; margin:6px 8px 10px; text-transform:uppercase; letter-spacing:.04em; }
+    .tileRow{ display:flex; align-items:center; gap:10px; padding:8px; margin:6px 4px; border-radius:10px; cursor:pointer; transition:background .15s ease, transform .05s ease; }
+    .tileRow:hover{ background:#0f1a30; }
+    .tileRow:active{ transform:translateY(1px); }
+    .tileRow img{ width:36px; height:36px; display:block; }
+    .tileName{ font-weight:500; color:#cfe1ff; }
+
+    /* Plateau */
+    #boardCol{
+      position: relative;
+      background: var(--bg);
+    }
+
+    #hudHeader{
+      position: absolute; left:0; right:0; top:0;
+      height: 96px;                 /* ← hauteur réelle du header */
+      z-index: 5; padding:10px 16px 6px;
+      background: linear-gradient(180deg, rgba(20,28,48,.85), rgba(20,28,48,.25) 65%, transparent);
+      border-bottom: 1px solid #0e1a34;
+      pointer-events: none;
+    }
+    #hudHeader .title{ text-align:center; font-weight:700; font-size:20px; letter-spacing:.02em; color:#d8e6ff; margin:4px 0 6px; }
+    #hudBars{ display:grid; grid-template-columns: repeat(6, 1fr) auto; gap:12px 14px; align-items:center; }
+    .hudCol{ display:flex; flex-direction:column; gap:6px; }
+    .hudLabel{ font-size:11px; letter-spacing:.03em; color:#9fb3d6; text-transform:uppercase; }
+    .hudBar{ background:var(--bar); height:8px; border-radius:8px; overflow:hidden; box-shadow:inset 0 0 0 1px #1b2644; }
+    .hudFill{ height:100%; width:0%; transition:width .25s ease; }
+    .hudFill.good{ background:var(--good); }
+    .hudFill.ok{ background:var(--warn); }
+    .hudFill.bad{ background:var(--bad); }
+    #hud_state{ font-size:13px; color:#d8e6ff; padding:2px 10px; background:#152040; border:1px solid #223056; border-radius:999px; }
+
+    /* Zone du canvas Phaser (sous le HUD) */
+    #boardMount{
+      position: absolute; left:0; right:0;
+      top: var(--hud-h);                  /* ← avant : 90px */
+      bottom: var(--board-bottom);        /* ← avant : 0 */
+      background: #0b0f14;                /* utile si pas déjà hérité */
+    }
+
+    /* Card */
+    #rightCol{ background:var(--bg-3); border-left:1px solid #0f1b33; padding:12px 14px 14px; display:flex; flex-direction:column; gap:10px; overflow:auto; }
+    #cardPreviewWrap{ display:flex; justify-content:center; align-items:center; padding:10px 0 4px; min-height:120px; }
+    #cardPreview{ width:96px; height:96px; image-rendering:pixelated; display:none; }
+    #cardName{ font-size:18px; font-weight:700; margin:4px 0 8px; }
+    #cardAxes .axis{ display:flex; align-items:center; gap:8px; margin:6px 0; }
+    #cardAxes .axis label{ width:78px; color:#9fb3d6; font-size:13px; }
+    #cardAxes .bar{ flex:1; height:6px; border-radius:6px; background:#19223e; overflow:hidden; }
+    #cardAxes .fill{ height:100%; width:0%; background:var(--bar-fill); }
+    #cardDesc{ color:#b7c7e6; min-height:42px; }
+    #btnCycle{ margin-top:auto; display:inline-flex; align-items:center; justify-content:center; gap:8px; width:100%; height:40px; border-radius:10px;
+      background:linear-gradient(180deg,#24c080,#1aa56e); color:#072012; font-weight:700; border:none; cursor:pointer;
+      box-shadow:0 3px 0 rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.15);
+      transition:transform .06s ease, filter .15s ease;
+    }
+    #btnCycle:hover{ filter:brightness(1.05); }
+    #btnCycle:active{ transform:translateY(1px); }
+
+    /* Footer */
+    footer{ position:fixed; left:0; right:0; bottom:0; height:50px; z-index:6;
+      background:linear-gradient(180deg, transparent, rgba(12,18,34,.85));
+      display:flex; align-items:flex-end; justify-content:space-between; padding:6px 16px 10px; pointer-events:none;
+    }
+    footer .left, footer .right{ pointer-events:auto; }
+    #stateLabel{ font-weight:700; }
+
+    canvas{ display:block; }
+
+    .quest-modal {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: #222;
+    color: white;
+    padding: 2em;
+    border: 2px solid #0ff;
+    z-index: 1000;
+    max-width: 500px;
+    text-align: center;
+    font-family: sans-serif;
+  }
+
+  .quest-modal button {
+    margin: 0.5em;
+    padding: 0.5em 1em;
+    font-size: 1em;
+    background: #0ff;
+    border: none;
+    cursor: pointer;
+  }
+
+  .quest-modal button:disabled {
+    background: #444;
+    cursor: not-allowed;
+  }
+
+  /* dans ton fichier global style.css ou index.html */
+  .modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex; justify-content: center; align-items: center;
+    z-index: 9999;
+  }
+
+  .modal {
+    background: #1b1f2b;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 400px;
+    color: white;
+  }
+
+  .modal h3 {
+    margin-top: 0;
+  }
+
+  .choices button {
+    display: block;
+    margin: 10px 0;
+    width: 100%;
+    padding: 10px;
+    background: #2e6ee2;
+    border: none;
+    color: white;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+
+  .choices button:hover {
+    background: #3a7cf2;
+  }
+
+
+  </style>
+</head>
+<body>
+
+  <div id="layout">
+    <!-- Palette -->
+    <aside id="leftCol">
+      <h2>Tuiles</h2>
+      <div id="palette"></div>
+    </aside>
+
+    <!-- Plateau -->
+    <main id="boardCol">
+      <header id="hudHeader">
+        <div class="title">BiomeExplorer — Prototype</div>
+        <div id="hudBars">
+          <div class="hudCol"><span class="hudLabel">energy</span><div class="hudBar"><div id="hud_energy" class="hudFill"></div></div></div>
+          <div class="hudCol"><span class="hudLabel">biodiv</span><div class="hudBar"><div id="hud_biodiv" class="hudFill"></div></div></div>
+          <div class="hudCol"><span class="hudLabel">food</span><div class="hudBar"><div id="hud_food" class="hudFill"></div></div></div>
+          <div class="hudCol"><span class="hudLabel">social</span><div class="hudBar"><div id="hud_social" class="hudFill"></div></div></div>
+          <div class="hudCol"><span class="hudLabel">resilience</span><div class="hudBar"><div id="hud_resilience" class="hudFill"></div></div></div>
+          <div class="hudCol"><span class="hudLabel">tech</span><div class="hudBar"><div id="hud_tech" class="hudFill"></div></div></div>
+          <div id="hud_state">Stable</div>
+        </div>
+      </header>
+      <div id="boardMount"></div>
+    </main>
+
+    <!-- Card -->
+    <aside id="rightCol">
+      <div id="cardPreviewWrap"><img id="cardPreview" alt="aperçu tuile" /></div>
+      <div id="cardName">Sélectionne une tuile</div>
+      <div id="cardAxes"></div>
+      <div id="cardDesc"></div>
+      <button id="btnCycle">Fin du cycle ▶</button>
+    </aside>
+  </div>
+
+  <footer>
+    <div class="left"><span id="stateLabel">État: —</span></div>
+    <div class="right"><span id="axesLine"></span></div>
+  </footer>
+
+  <!-- Phaser global (non module) -->
+  <script src="phaser.js"></script>
+
+  <!-- App en modules ES -->
+  <script type="module" src="src/main.js"></script>
+
+
+
+
+</body>
+
+<div id="custom-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#0008; z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#222; color:#fff; padding:20px; border-radius:8px; max-width:400px;">
+    <p id="custom-modal-message"></p>
+    <button onclick="document.getElementById('custom-modal').style.display='none'" style="margin-top:10px;">OK</button>
+  </div>
+</div>
+
+
+</html>

@@ -1,0 +1,7 @@
+[functions]
+  directory = "netlify/functions"
+
+[[redirects]]
+  from = "/api/biome"
+  to = "/.netlify/functions/biome"
+  status = 200
